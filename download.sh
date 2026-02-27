@@ -75,6 +75,33 @@ fi
 CURRENT_DIR="$(pwd)"
 FULL_PATH="${CURRENT_DIR}/${FILENAME}"
 
+# Clean dynamic content from HTML file
+clean_html_file() {
+  local file="$1"
+
+  sed -i -E \
+    -e 's/js-view-dom-id-[a-f0-9]{64}/js-view-dom-id-STATIC/g' \
+    -e 's/(id="edit-submit-accc-search-site--)[^"]+"/\1STATIC"/g' \
+    -e 's/(css\/css_)[^.]+\.css/\1STATIC.css/g' \
+    -e 's/(js\/js_)[^.]+\.js/\1STATIC.js/g' \
+    -e 's/("libraries":")[^"]+"/\1STATIC_LIBRARIES"/g' \
+    -e 's/("permissionsHash":")[^"]+"/\1STATIC_HASH"/g' \
+    -e 's/("view_dom_id":")[a-f0-9]{64}/\1STATIC"/g' \
+    -e 's/(views_dom_id:)[a-f0-9]{64}/\1STATIC/g' \
+    -e 's/include=[^"&>]+/include=STATIC/g' \
+    -e 's/href="https:\/\/app\.readspeaker\.com\/[^"]+"/href="STATIC_READSPEAKER_URL"/g' \
+    -e 's/(icons\.svg\?t)[^#]+#/\1STATIC#/g' \
+    -e 's/(\?t)[^">]+/\1STATIC/g' \
+    -e 's/("css_js_query_string":")[^"]+"/\1STATIC"/g' \
+    "$file"
+
+  sed -i -E -e ':a;N;$!ba;s#(<a[^>]*class="[^"]*megamenu-page-link-level-3[^"]*"[^>]*href=")[^"]*("[^>]*>[[:space:]]*<span>)[^<]*(</span>)#\1STATIC_HREF\2STATIC_TEXT\3#g' "$file"
+
+  local temp_file
+  temp_file=$(mktemp)
+  cat -s "$file" > "$temp_file" && mv "$temp_file" "$file"
+}
+
 # Pretty-print JSON if applicable
 if [ "$EXTENSION" = ".json" ]; then
   # Create another temporary file for the pretty-printed version
@@ -93,3 +120,8 @@ fi
 
 # Move to final destination
 mv "$TEMP_FILE" "$FULL_PATH"
+
+# Clean dynamic content from HTML files
+if [ "$EXTENSION" = ".html" ]; then
+  clean_html_file "$FULL_PATH"
+fi
